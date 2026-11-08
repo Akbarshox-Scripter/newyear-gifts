@@ -27,7 +27,6 @@
 </script>
 <body class="min-h-screen pb-32 select-none">
 
-    <!-- Шапка -->
     <header class="p-4 bg-white shadow-sm sticky top-0 z-40 flex items-center justify-between border-b border-slate-100">
         <h1 class="font-bold text-lg text-red-600 flex items-center gap-2">
             🎄 Новогодние Подарки
@@ -35,26 +34,17 @@
         <span class="text-xs bg-red-50 text-red-600 font-semibold px-2.5 py-1 rounded-full">Ручная работа</span>
     </header>
 
-    <!-- КАТАЛОГ -->
     <main id="catalog-view" class="p-4 max-w-md mx-auto space-y-4">
         <div id="products-container" class="space-y-4"></div>
-        
-        <!-- Секретная кнопка входа в админку, если Телеграм не отдал юзернейм -->
-        <div id="secret-admin-trigger" class="text-center pt-8 hidden">
-            <button onclick="unlockAdminManually()" class="text-[10px] text-slate-300 hover:text-slate-500 transition">
-                🔐 Войти как администратор
-            </button>
-        </div>
     </main>
 
-    <!-- МЕНЮ ПОКУПКИ -->
     <div id="product-view" class="hidden p-4 max-w-md mx-auto space-y-4">
         <button onclick="switchTab('catalog')" class="text-slate-500 font-medium text-sm flex items-center gap-1 mb-2">
             ← Назад в каталог
         </button>
         <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 space-y-4">
             <div id="modal-img-container" class="w-full h-64 bg-slate-100 rounded-xl flex items-center justify-center text-slate-400 font-medium text-sm border border-dashed border-slate-300 overflow-hidden">
-                waiting for photos....
+                нет фото
             </div>
             <div>
                 <h2 id="modal-title" class="font-bold text-lg text-slate-800">Название товара</h2>
@@ -76,13 +66,11 @@
         </div>
     </div>
 
-    <!-- МОИ ЗАКАЗЫ -->
     <main id="orders-view" class="hidden p-4 max-w-md mx-auto space-y-3">
         <h2 class="font-bold text-lg text-slate-800 mb-2">📦 История заказов</h2>
         <div id="orders-list" class="space-y-3"></div>
     </main>
 
-    <!-- АДМИНКА -->
     <main id="admin-view" class="hidden p-4 max-w-md mx-auto space-y-4">
         <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 space-y-4">
             <h2 class="font-bold text-lg text-red-600 flex items-center gap-2">⚙️ Панель Администратора</h2>
@@ -115,14 +103,12 @@
         </div>
     </main>
 
-    <!-- КНОПКА КУПИТЬ -->
     <div id="buy-bar" class="fixed bottom-16 left-0 right-0 p-4 bg-white/90 backdrop-blur-md border-t border-slate-100 max-w-md mx-auto z-40">
         <button onclick="buyProduct()" class="w-full bg-red-600 hover:bg-red-500 active:scale-98 transition text-white py-3.5 rounded-xl font-bold text-base shadow-lg shadow-red-600/30 flex items-center justify-center gap-2">
             🛒 Купить
         </button>
     </div>
 
-    <!-- НИЖНЯЯ НАВИГАЦИЯ -->
     <nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 p-2 max-w-md mx-auto z-50 flex justify-around" id="bottom-nav">
         <button onclick="switchTab('catalog')" id="nav-catalog" class="flex flex-col items-center text-red-600 text-xs font-bold gap-1 py-1 px-4">
             <span class="text-xl">🛍️</span> Каталог
@@ -132,7 +118,6 @@
         </button>
     </nav>
 
-    <!-- МОДАЛКА УСПЕХА -->
     <div id="success-modal" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-3xl p-6 max-w-xs w-full text-center space-y-4 shadow-2xl animate-popup">
             <div class="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto text-3xl font-bold shadow-inner">✓</div>
@@ -144,50 +129,24 @@
         </div>
     </div>
 
-    <!-- Скрипты -->
     <script>
         const tgUser = window.Telegram.WebApp.initDataUnsafe?.user;
         const allowedAdmins = ['arimas2824', 'akbarshox_lite'];
-        
-        let isAdmin = tgUser && tgUser.username && allowedAdmins.includes(tgUser.username.toLowerCase());
-        
-        if (localStorage.getItem('is_admin_unlocked') === 'true') {
-            isAdmin = true;
-        }
+        const isAdmin = tgUser && tgUser.username && allowedAdmins.includes(tgUser.username.toLowerCase());
 
-        function checkAdminUI() {
-            if (isAdmin) {
-                const nav = document.getElementById('bottom-nav');
-                if (!document.getElementById('nav-admin')) {
-                    nav.innerHTML += `
-                        <button onclick="switchTab('admin')" id="nav-admin" class="flex flex-col items-center text-slate-400 text-xs font-bold gap-1 py-1 px-4">
-                            <span class="text-xl">⚙️</span> Админка
-                        </button>
-                    `;
-                }
-            } else {
-                document.getElementById('secret-admin-trigger').classList.remove('hidden');
-            }
-        }
-
-        function unlockAdminManually() {
-            let code = prompt("Введите пароль администратора:");
-            if (allowedAdmins.includes(code.toLowerCase()) || code === "1234") {
-                localStorage.setItem('is_admin_unlocked', 'true');
-                isAdmin = true;
-                checkAdminUI();
-                alert("Панель администратора разблокирована! ✨");
-                switchTab('admin');
-            } else {
-                alert("Неверный код!");
-            }
+        if (isAdmin) {
+            const nav = document.getElementById('bottom-nav');
+            nav.innerHTML += `
+                <button onclick="switchTab('admin')" id="nav-admin" class="flex flex-col items-center text-slate-400 text-xs font-bold gap-1 py-1 px-4">
+                    <span class="text-xl">⚙️</span> Админка
+                </button>
+            `;
         }
 
         let products = JSON.parse(localStorage.getItem('shop_products') || '[]');
         let orders = JSON.parse(localStorage.getItem('my_orders') || '[]');
         let currentProduct = null;
 
-        checkAdminUI();
         renderCatalog();
 
         function switchTab(tab) {
@@ -386,3 +345,26 @@
         }
 
         function renderAdminList() {
+            let list = document.getElementById('admin-products-list');
+            if (products.length === 0) {
+                list.innerHTML = `<p class="text-xs text-slate-400">Товаров нет.</p>`;
+                return;
+            }
+            list.innerHTML = products.map((p, index) => `
+                <div class="flex items-center justify-between bg-slate-50 p-2.5 rounded-xl border border-slate-200 text-xs">
+                    <span class="font-bold text-slate-800">${p.name} (${p.price} сум)</span>
+                    <button onclick="deleteProduct(${index})" class="bg-red-100 text-red-600 px-2.5 py-1 rounded-lg font-bold">Удалить</button>
+                </div>
+            `).join('');
+        }
+
+        function deleteProduct(index) {
+            if (confirm('Удалить товар?')) {
+                products.splice(index, 1);
+                localStorage.setItem('shop_products', JSON.stringify(products));
+                renderAdminList();
+            }
+        }
+    </script>
+</body>
+</html>
