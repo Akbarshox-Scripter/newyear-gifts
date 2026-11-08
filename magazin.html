@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Новогодний Магазин</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        body {
+            background-color: #f8fafc;
+            color: #1e293b;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.9); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        .animate-popup {
+            animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+    </style>
+</head>
+<script>
+    window.Telegram.WebApp.ready();
+    window.Telegram.WebApp.expand();
+</script>
+<body class="min-h-screen pb-32 select-none">
+
+    <!-- Шапка -->
+    <header class="p-4 bg-white shadow-sm sticky top-0 z-40 flex items-center justify-between border-b border-slate-100">
+        <h1 class="font-bold text-lg text-red-600 flex items-center gap-2">
+            🎄 Новогодние Подарки
+        </h1>
+        <span class="text-xs bg-red-50 text-red-600 font-semibold px-2.5 py-1 rounded-full">Ручная работа</span>
+    </header>
+
+    <!-- ВКЛАДКА: ГЛАВНОЕ МЕНЮ (КАТАЛОГ) -->
+    <main id="catalog-view" class="p-4 max-w-md mx-auto space-y-4">
+        <div id="products-container" class="space-y-4">
+            <!-- Сюда динамически подгружаются товары -->
+        </div>
+    </main>
+
+    <!-- МЕНЮ ПОКУПКИ ТОВАРА -->
+    <div id="product-view" class="hidden p-4 max-w-md mx-auto space-y-4">
+        <button onclick="switchTab('catalog')" class="text-slate-500 font-medium text-sm flex items-center gap-1 mb-2">
+            ← Назад в каталог
+        </button>
+
+        <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 space-y-4">
+            <div id="modal-img-container" class="w-full h-64 bg-slate-100 rounded-xl flex items-center justify-center text-slate-400 font-medium text-sm border border-dashed border-slate-300 overflow-hidden">
+                waiting for photos....
+            </div>
+            <div>
+                <h2 id="modal-title" class="font-bold text-lg text-slate-800">Название товара</h2>
+                <p id="modal-desc" class="text-xs text-slate-500 mt-1">Описание товара...</p>
+                <p id="modal-price" class="text-blue-600 font-bold text-lg mt-2">6 000 сум</p>
+            </div>
+
+            <div class="pt-2 border-t border-slate-100 flex items-center justify-between">
+                <span class="text-sm font-medium text-slate-600">Количество:</span>
+                <div class="flex items-center space-x-3 bg-slate-50 p-1.5 rounded-xl border border-slate-200">
+                    <button onclick="changeQty(-1)" class="w-9 h-9 bg-white rounded-lg shadow-sm font-bold text-slate-700 flex items-center justify-center text-lg">-</button>
+                    <input type="number" id="qty-input" value="1" min="1" class="w-12 text-center font-bold text-slate-800 bg-transparent outline-none text-base" oninput="updateTotal()">
+                    <button onclick="changeQty(1)" class="w-9 h-9 bg-white rounded-lg shadow-sm font-bold text-slate-700 flex items-center justify-center text-lg">+</button>
+                </div>
+            </div>
+
+            <div class="flex justify-between items-center pt-2 text-sm font-semibold text-slate-600">
+                <span>Итого к оплате:</span>
+                <span id="total-price" class="text-red-600 font-extrabold text-lg">6 000 сум</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ВКЛАДКА: МОИ ЗАКАЗЫ -->
+    <main id="orders-view" class="hidden p-4 max-w-md mx-auto space-y-3">
+        <h2 class="font-bold text-lg text-slate-800 mb-2">📦 История заказов</h2>
+        <div id="orders-list" class="space-y-3">
+            <!-- История заказов -->
+        </div>
+    </main>
+
+    <!-- ВКЛАДКА: АДМИНКА (ТОЛЬКО ДЛЯ @arimas2824) -->
+    <main id="admin-view" class="hidden p-4 max-w-md mx-auto space-y-4">
+        <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 space-y-4">
+            <h2 class="font-bold text-lg text-red-600 flex items-center gap-2">⚙️ Панель S Миры</h2>
+            <p class="text-xs text-slate-500">Добавление нового товара в каталог:</p>
+
+            <div class="space-y-3">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Название товара</label>
+                    <input type="text" id="admin-name" placeholder="Например: Новогодний олень" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-sm outline-none focus:border-red-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Цена (сум)</label>
+                    <input type="number" id="admin-price" value="6000" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-sm outline-none focus:border-red-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Описание товара</label>
+                    <textarea id="admin-desc" placeholder="Краткое описание..." class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-sm outline-none focus:border-red-500 h-20 resize-none"></textarea>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Фотография товара</label>
+                    <input type="file" id="admin-photo" accept="image/*" class="w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-red-50 file:text-red-700 hover:file:bg-red-100">
+                </div>
+
+                <button onclick="addNewProduct()" class="w-full bg-red-600 hover:bg-red-500 text-white py-3 rounded-xl font-bold text-sm shadow-md transition">
+                    + Добавить товар в каталог
+                </button>
+            </div>
+            
+            <div class="pt-4 border-t border-slate-100">
+                <h3 class="font-bold text-xs text-slate-500 mb-2">Управление товарами:</h3>
+                <div id="admin-products-list" class="space-y-2">
+                    <!-- Список товаров с кнопкой удаления -->
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- НИЖНЯЯ ПАНЕЛЬ / КНОПКА КУПИТЬ -->
+    <div id="buy-bar" class="fixed bottom-16 left-0 right-0 p-4 bg-white/90 backdrop-blur-md border-t border-slate-100 max-w-md mx-auto z-40">
+        <button onclick="buyProduct()" class="w-full bg-red-600 hover:bg-red-500 active:scale-98 transition text-white py-3.5 rounded-xl font-bold text-base shadow-lg shadow-red-600/30 flex items-center justify-center gap-2">
+            🛒 Купить
+        </button>
+    </div>
+
+    <!-- НАВИГАЦИЯ (МЕНЮ СНИЗУ) -->
+    <nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 p-2 max-w-md mx-auto z-50 flex justify-around" id="bottom-nav">
+        <button onclick="switchTab('catalog')" id="nav-catalog" class="flex flex-col items-center text-red-600 text-xs font-bold gap-1 py-1 px-4">
+            <span class="text-xl">🛍️</span> Каталог
+        </button>
+        <button onclick="switchTab('orders')" id="nav-orders" class="flex flex-col items-center text-slate-400 text-xs font-bold gap-1 py-1 px-4">
+            <span class="text-xl">📦</span> Мои заказы
+        </button>
+        <!-- Кнопка админки вставится сюда скриптом, если юзер @arimas2824 -->
+    </nav>
+
+    <!-- МОДАЛКА УСПЕХА -->
+    <div id="success-modal" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl p-6 max-w-xs w-full text-center space-y-4 shadow-2xl animate-popup">
+            <div class="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto text-3xl font-bold shadow-inner">
+                ✓
+            </div>
+            <div class="space-y-1">
+                <h3 class="font-bold text-lg text-slate-800">Заявка отправлена!</h3>
+                <p class="text-xs text-slate-500">Связаться: <span class="text-blue-600 font-semibold">@arimas2824</span></p>
+            </div>
+            <button onclick="closeSuccess()" class="w-full bg-slate-900 text-white py-2.5 rounded-xl font-bold text-sm">
+                Отлично
+            </button>
+        </div>
+    </div>
+
+    <!-- Скрипты -->
+    <script>
+        // Проверяем админа по юзернейму Telegram
+        const tgUser = window.Telegram.WebApp.initDataUnsafe?.user;
+        const isAdmin = tgUser && tgUser.username && tgUser.username.toLowerCase() === 'arimas2824';
+
+        // Если админ — добавляем кнопку админки в нижнее меню
+        if (isAdmin) {
+            const nav = document.getElementById('bottom-nav');
+            nav.innerHTML += `
+                <button onclick="switchTab('admin')" id="nav-admin" class="flex flex-col items-center text-slate-400 text-xs font-bold gap-1 py-1 px-4">
+                    <span class="text-xl">⚙️</span> Админка
+                </button>
+            `;
+        }
+
+        // Хранилище товаров и заказов
+        let products = JSON.parse(localStorage.getItem('shop_products') || '[]');
+        let orders = JSON.parse(localStorage.getItem('my_orders') || '[]');
+        let currentProduct = null;
+
+        // Инициализация при загрузке
+        renderCatalog();
+
+        function switchTab(tab) {
+            document.getElementById('catalog-view').classList.add('hidden');
+            document.getElementById('product-view').classList.add('hidden');
+            document.getElementById('orders-view').classList.add('hidden');
+            document.getElementById('admin-view').classList.add('hidden');
+            document.getElementById('buy-bar').classList.add('hidden');
+
+            // Сброс цвета иконок навигации
+            ['nav-catalog', 'nav-orders', 'nav-admin'].forEach(id => {
+                let el = document.getElementById(id);
+                if(el) el.className = "flex flex-col items-center text-slate-400 text-xs font-bold gap-1 py-1 px-4";
+            });
+
+            if (tab === 'catalog') {
+                document.getElementById('catalog-view').classList.remove('hidden');
+                document.getElementById('buy-bar').classList.remove('hidden');
+                let el = document.getElementById('nav-catalog');
+                if(el) el.className = "flex flex-col items-center text-red-600 text-xs font-bold gap-1 py-1 px-4";
+                renderCatalog();
+            } else if (tab === 'product') {
+                document.getElementById('product-view').classList.remove('hidden');
+                document.getElementById('buy-bar').classList.remove('hidden');
+            } else if (tab === 'orders') {
+                document.getElementById('orders-view').classList.remove('hidden');
+                let el = document.getElementById('nav-orders');
+                if(el) el.className = "flex flex-col items-center text-red-600 text-xs font-bold gap-1 py-1 px-4";
+                renderOrders();
+            } else if (tab === 'admin' && isAdmin) {
+                document.getElementById('admin-view').classList.remove('hidden');
+                let el = document.getElementById('nav-admin');
+                if(el) el.className = "flex flex-col items-center text-red-600 text-xs font-bold gap-1 py-1 px-4";
+                renderAdminList();
+            }
+            window.scrollTo(0, 0);
+        }
+
+        function renderCatalog() {
+            let container = document.getElementById('products-container');
+            if (products.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-16 space-y-2">
+                        <div class="text-4xl">🎄</div>
+                        <p class="text-sm font-medium text-slate-400">Каталог пока пуст.</p>
+                        ${isAdmin ? '<p class="text-xs text-red-500 font-semibold">Перейдите в вкладку «Админка», чтобы добавить товары!</p>' : ''}
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = products.map((p, index) => `
+                <div onclick="openProduct(${index})" class="bg-white rounded-2xl p-3 shadow-sm border border-slate-100 active:scale-98 transition cursor-pointer">
+                    ${p.photo 
+                        ? `<img src="${p.photo}" class="w-full h-48 object-cover rounded-xl mb-3 border border-slate-200">`
+                        : `<div class="w-full h-48 bg-slate-100 rounded-xl flex items-center justify-center text-slate-400 font-medium text-sm mb-3 border border-dashed border-slate-300">waiting for photos....</div>`
+                    }
+                    <h3 class="font-bold text-slate-800 text-sm">${p.name}</h3>
+                    <p class="text-xs text-slate-500 mt-0.5 line-clamp-1">${p.desc || ''}</p>
+                    <p class="text-blue-600 font-bold text-base mt-1">${p.price.toLocaleString()} сум</p>
+                </div>
+            `).join('');
+        }
+
+        function openProduct(index) {
+            currentProduct = products[index];
+            document.getElementById('modal-title').innerText = currentProduct.name;
+            document.getElementById('modal-desc').innerText = currentProduct.desc || 'Без описания';
+            document.getElementById('modal-price').innerText = currentProduct.price.toLocaleString() + ' сум';
+            
+            let imgContainer = document.getElementById('modal-img-container');
+            if (currentProduct.photo) {
+                imgContainer.innerHTML = `<img src="${currentProduct.photo}" class="w-full h-full object-cover">`;
+            } else {
+                imgContainer.innerHTML = `waiting for photos....`;
+            }
+
+            document.getElementById('qty-input').value = 1;
+            updateTotal();
+            switchTab('product');
+        }
+
+        function changeQty(delta) {
+            let input = document.getElementById('qty-input');
+            let val = parseInt(input.value) || 1;
+            val += delta;
+            if (val < 1) val = 1;
+            input.value = val;
+            updateTotal();
+        }
+
+        function updateTotal() {
+            if (!currentProduct) return;
+            let input = document.getElementById('qty-input');
+            let qty = parseInt(input.value) || 1;
+            if (qty < 1) qty = 1;
+            let total = currentProduct.price * qty;
+            document.getElementById('total-price').innerText = total.toLocaleString() + ' сум';
+        }
+
+        function buyProduct() {
+            if (!currentProduct) return;
+            let qty = parseInt(document.getElementById('qty-input').value) || 1;
+            let total = currentProduct.price * qty;
+
+            let newOrder = {
+                id: Date.now().toString().slice(-6),
+                title: currentProduct.name,
+                qty: qty,
+                total: total,
+                status: 'ожидание',
+                date: new Date().toLocaleDateString()
+            };
+
+            orders.unshift(newOrder);
+            localStorage.setItem('my_orders', JSON.stringify(orders));
+
+            let orderData = `🎁 Товар: ${newOrder.title}\n📦 Количество: ${newOrder.qty} шт.\n💰 Сумма: ${newOrder.total.toLocaleString()} сум\n🆔 ID: #${newOrder.id}`;
+
+            if (window.Telegram.WebApp) {
+                window.Telegram.WebApp.sendData(orderData);
+                if (window.Telegram.WebApp.HapticFeedback) {
+                    window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+                }
+            }
+
+            document.getElementById('success-modal').classList.remove('hidden');
+        }
+
+        function closeSuccess() {
+            document.getElementById('success-modal').classList.add('hidden');
+            switchTab('orders');
+            if (window.Telegram.WebApp) {
+                window.Telegram.WebApp.close();
+            }
+        }
+
+        function renderOrders() {
+            let list = document.getElementById('orders-list');
+            if (orders.length === 0) {
+                list.innerHTML = `<div class="text-center py-12 text-slate-400 text-sm">У вас пока нет заказов 🛒</div>`;
+                return;
+            }
+
+            list.innerHTML = orders.map(o => {
+                let badgeColor = 'bg-amber-100 text-amber-700';
+                let statusText = 'Ожидание ⏳';
+                if (o.status === 'принят') {
+                    badgeColor = 'bg-blue-100 text-blue-700';
+                    statusText = 'Принят ✅';
+                } else if (o.status === 'готов') {
+                    badgeColor = 'bg-emerald-100 text-emerald-700';
+                    statusText = 'Готов 🔥';
+                }
+
+                return `
+                    <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 space-y-2">
+                        <div class="flex justify-between items-center">
+                            <span class="text-xs font-bold text-slate-400">Заказ #${o.id}</span>
+                            <span class="text-xs font-bold px-2.5 py-1 rounded-full ${badgeColor}">${statusText}</span>
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-slate-800 text-sm">${o.title} (${o.qty} шт.)</h4>
+                            <p class="text-blue-600 font-bold text-sm mt-0.5">${o.total.toLocaleString()} сум</p>
+                        </div>
+                        <div class="text-[10px] text-slate-400 pt-1 border-t border-slate-50 flex justify-between">
+                            <span>📅 ${o.date}</span>
+                            <span>Админ: @arimas2824</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Функции для Админки
+        function addNewProduct() {
+            let name = document.getElementById('admin-name').value.trim();
+            let price = parseInt(document.getElementById('admin-price').value) || 6000;
+            let desc = document.getElementById('admin-desc').value.trim();
+            let fileInput = document.getElementById('admin-photo');
+
+            if (!name) {
+                alert('Введите название товара!');
+                return;
+            }
+
+            if (fileInput.files && fileInput.files[0]) {
+                let reader = new FileReader();
+                reader.onload = function(e) {
+                    saveProduct(name, price, desc, e.target.result);
+                };
+                reader.readAsDataURL(fileInput.files[0]);
+            } else {
+                saveProduct(name, price, desc, '');
+            }
+        }
+
+        function saveProduct(name, price, desc, photo) {
+            products.push({ name, price, desc, photo });
+            localStorage.setItem('shop_products', JSON.stringify(products));
+            
+            // Очищаем форму
+            document.getElementById('admin-name').value = '';
+            document.getElementById('admin-desc').value = '';
+            document.getElementById('admin-photo').value = '';
+            
+            alert('Товар успешно добавлен в каталог!');
+            switchTab('catalog');
+        }
+
+        function renderAdminList() {
+            let list = document.getElementById('admin-products-list');
+            if (products.length === 0) {
+                list.innerHTML = `<p class="text-xs text-slate-400">Товаров пока нет.</p>`;
+                return;
+            }
+
+            list.innerHTML = products.map((p, index) => `
+                <div class="flex items-center justify-between bg-slate-50 p-2.5 rounded-xl border border-slate-200 text-xs">
+                    <span class="font-bold text-sla
