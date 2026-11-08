@@ -77,11 +77,15 @@ def receive_web_app(message):
   user = message.from_user
   username = f"@{user.username}" if user.username else f"{user.first_name}"
   order_info = message.web_app_data.data
+  
   report = (
-      f"🚨 **НОВАЯ ЗАЯВКА!**\n\n👤 Заказчик: {username}\n🔗 Юзернейм:"
-      f" @{user.username if user.username else 'нет'}\n\n{order_info}\n\n📊 Статус:"
-      " Ожидание ⏳"
+      f"🚨 **НОВАЯ ЗАЯВКА!**\n\n"
+      f"👤 Заказчик: {username}\n"
+      f"🔗 Юзернейм: @{user.username if user.username else 'нет'}\n\n"
+      f"{order_info}\n\n"
+      f"📊 Статус: Ожидание ⏳"
   )
+  
   admin_markup = telebot.types.InlineKeyboardMarkup(row_width=2)
   admin_markup.add(
       telebot.types.InlineKeyboardButton(
@@ -91,13 +95,22 @@ def receive_web_app(message):
           "🔥 Готов", callback_data="status_ready"
       ),
   )
+
   bot.send_message(
       message.chat.id,
-      "✅ Заказ успешно оформлен! Администраторы скоро свяжутся с вами.",
+      "✅ Заказ успешно оформлен! Администраторы скоро свяжутся с вами."
   )
-  bot.send_message(
-      message.chat.id, report, reply_markup=admin_markup, parse_mode="Markdown"
-  )
+
+  for admin_username in ADMIN_USERNAMES:
+      try:
+          bot.send_message(
+              f"@{admin_username}", 
+              report, 
+              reply_markup=admin_markup, 
+              parse_mode="Markdown"
+          )
+      except Exception as e:
+          print(f"Не удалось отправить админу {admin_username}: {e}")
 
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith("status_"))
@@ -110,6 +123,7 @@ def change_status(call):
         call.id, "❌ У вас нет прав администратора!", show_alert=True
     )
     return
+  
   new_status_text = (
       "Принят ✅" if call.data == "status_accepted" else "Готов 🔥"
   )
@@ -117,6 +131,7 @@ def change_status(call):
       call.id,
       f"Статус изменен: {'Принят' if call.data == 'status_accepted' else 'Готов'}",
   )
+  
   try:
     old_text = call.message.text
     lines = old_text.split("\n")
@@ -129,6 +144,7 @@ def change_status(call):
         for line in lines
     ]
     new_text = "\n".join(updated_lines)
+    
     admin_markup = telebot.types.InlineKeyboardMarkup(row_width=2)
     admin_markup.add(
         telebot.types.InlineKeyboardButton(
@@ -138,6 +154,7 @@ def change_status(call):
             "🔥 Готов", callback_data="status_ready"
         ),
     )
+    
     bot.edit_message_text(
         new_text,
         call.message.chat.id,
